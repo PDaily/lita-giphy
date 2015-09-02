@@ -8,15 +8,32 @@ module Lita
         "giphy QUERY" => "Grabs a gif tagged with QUERY."
       })
 
-      def self.default_config(config)
-        config.api_key = nil
-      end
+      config :api_key, default: nil
 
       def giphy(response)
         return unless validate(response)
 
         query = response.matches[0][0]
-        response.reply get_gif(query)
+
+        # Set our gif
+        gif = get_gif(query)
+
+        colors = ['#23cdfc','#2afd9c','#9840fb','#fffe9f','#fc6769']
+
+        # Build slack attachment hash
+        attachment_hash ={
+          color: colors.sample,
+          image_url: gif
+        }
+
+        # Create Attachment
+        attachment = Lita::Adapters::Slack::Attachment.new(gif, attachment_hash)
+        case robot.config.robot.adapter
+        when :slack
+          robot.chat_service.send_attachment(response.room, attachment)
+        else
+          response.reply
+        end
       end
 
       private
